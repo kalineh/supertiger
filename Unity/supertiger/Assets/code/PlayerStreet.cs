@@ -173,7 +173,7 @@ public class PlayerStreet
                         if (jumpFrames == 1)
                         {
                             bodyState = BodyState.JumpPushing;
-                            forceY = 0.3f;
+                            forceY = 0.25f;
 
                             EjectFromFloor();
 
@@ -194,6 +194,8 @@ public class PlayerStreet
                     }
                 case BodyState.Land:
                     {
+                        forceX *= 0.2f;
+                        forceY = 0.0f;
                         bodyState = BodyState.Idle;
                         break;
                     }
@@ -209,9 +211,9 @@ public class PlayerStreet
                     }
                 case BodyState.JumpPushing:
                     {
-                        forceX += inputX * 0.05f;
-                        forceY += 0.006f;
-                        forceY -= (float)jumpFrames * 0.0003f;
+                        forceX += inputX * 0.03f;
+                        forceY += 0.0005f;
+                        forceY -= (float)jumpFrames * 0.00005f;
                         forceY = Mathf.Max(forceY, 0.0f);
 
                         if (jumpFrames == 0 || forceY <= 0.0f)
@@ -225,8 +227,9 @@ public class PlayerStreet
                     }
                 case BodyState.JumpRising:
                     {
-                        forceX += inputX * 0.04f;
-                        forceY -= (float)jumpFrames * 0.0002f;
+                        forceX += inputX * 0.03f;
+                        //forceY -= (float)jumpFrames * 0.0002f;
+                        forceY -= 0.001f;
                         forceY = Mathf.Max(forceY, 0.0f);
 
                         if (forceY <= 0.0f)
@@ -239,8 +242,8 @@ public class PlayerStreet
                     }
                 case BodyState.JumpFalling:
                     {
-                        forceX += inputX * 0.04f;
-                        forceY -= 0.011f;
+                        forceX += inputX * 0.01f;
+                        forceY -= 0.008f;
 
                         if (landed)
                         {
@@ -268,11 +271,15 @@ public class PlayerStreet
             if (landed)
                 vel.x *= 0.8f;
             else
-                vel.x *= 0.8f;
+                vel.x *= 0.98f;
 
             vel.y *= 0.8f;
 
-            forceX *= 0.40f;
+            if (landed)
+                forceX *= 0.40f;
+            else
+                forceX *= 0.80f;
+
             forceY *= 0.92f;
 
             if (Mathf.Abs(forceX) < 0.001f) forceX = 0.0f;
