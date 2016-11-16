@@ -5,7 +5,9 @@ using UnityEngine;
 public class PlayerStreet
     : MonoBehaviour
 {
+    public Collider2D FloorTrigger;
     public Collider2D FloorCollider;
+
     private Collider2D selfCollider;
 
     private Vector2 vel;
@@ -44,6 +46,8 @@ public class PlayerStreet
         StartCoroutine(DoUpdateInput());
         //StartCoroutine(DoUpdateBodyState());
         //StartCoroutine(DoUpdateBodyStateVisual());
+
+        EjectFromFloor();
     }
 
     public bool IsJumpingAny()
@@ -56,7 +60,7 @@ public class PlayerStreet
 
     public bool IsTouchingFloor()
     {
-        return Physics2D.IsTouching(selfCollider, FloorCollider);
+        return Physics2D.IsTouching(selfCollider, FloorTrigger);
     }
 
     /*
@@ -173,10 +177,7 @@ public class PlayerStreet
                         if (jumpFrames == 1)
                         {
                             bodyState = BodyState.JumpPushing;
-                            forceY = 0.25f;
-
-                            EjectFromFloor();
-
+                            forceY = 0.20f;
                             break;
                         }
 
@@ -189,7 +190,7 @@ public class PlayerStreet
                             break;
                         }
 
-                        forceX += inputX * 0.05f;
+                        forceX += inputX * 0.02f;
                         break;
                     }
                 case BodyState.Land:
@@ -199,6 +200,7 @@ public class PlayerStreet
                         bodyState = BodyState.Idle;
                         break;
                     }
+
                 case BodyState.Walk:
                     {
                         bodyState = BodyState.Idle;
@@ -211,9 +213,9 @@ public class PlayerStreet
                     }
                 case BodyState.JumpPushing:
                     {
-                        forceX += inputX * 0.03f;
-                        forceY += 0.0005f;
-                        forceY -= (float)jumpFrames * 0.00005f;
+                        forceX += inputX * 0.01f;
+                        forceY += 0.0003f;
+                        forceY -= (float)jumpFrames * 0.00002f;
                         forceY = Mathf.Max(forceY, 0.0f);
 
                         if (jumpFrames == 0 || forceY <= 0.0f)
@@ -227,7 +229,7 @@ public class PlayerStreet
                     }
                 case BodyState.JumpRising:
                     {
-                        forceX += inputX * 0.03f;
+                        forceX += inputX * 0.01f;
                         //forceY -= (float)jumpFrames * 0.0002f;
                         forceY -= 0.001f;
                         forceY = Mathf.Max(forceY, 0.0f);
@@ -248,7 +250,6 @@ public class PlayerStreet
                         if (landed)
                         {
                             bodyState = BodyState.Land;
-                            EjectFromFloor();
                             break;
                         }
 
@@ -258,10 +259,9 @@ public class PlayerStreet
 
             vel += new Vector2(forceX, forceY);
 
-            if (landed)
-                vel.y = 0.0f;
-
             body.position += vel;
+
+            landed = IsTouchingFloor();
 
             forceX = Mathf.Clamp(forceX, -0.03f, 0.03f);
             forceY = Mathf.Clamp(forceY, -0.25f, 0.25f);
@@ -287,74 +287,21 @@ public class PlayerStreet
             if (Mathf.Abs(vel.x) < 0.001f) vel.x = 0.0f;
             if (Mathf.Abs(vel.y) < 0.001f) vel.y = 0.0f;
 
+            EjectFromFloor();
+
             yield return new WaitForFixedUpdate();
         }
     }
 
     public void EjectFromFloor()
     {
-        for (int i = 0; i < 32; ++i)
-        {
-            body.position += Vector2.up * 0.01f;
-            transform.position += Vector3.up * 0.01f;
-
-            if (!IsTouchingFloor())
-                break;
-        }
-    }
-
-    public void EjectFromFloorRay()
-    {
-        var height = selfCollider.bounds.size.y * 0.5f;
-        var mask = LayerMask.GetMask("Floor");
-        var hit = Physics2D.Raycast(transform.position, Vector2.down, height + 0.25f, mask);
-        if (!hit)
+        if (!Physics2D.IsTouching(selfCollider, FloorTrigger))
             return;
 
-        var dist = hit.distance;
-
-        body.position += Vector2.up * (height - dist);
+        for (int i = 0; i < 32; ++i)
+        {
+            if (Physics2D.IsTouching(selfCollider, FloorCollider))
+                body.position += Vector2.up * 0.001f;
+        }
     }
-
-    /*
-    public void UpdateMovement()
-    {
-        var landed = Physics2D.IsTouching(selfCollider, FloorCollider);
-
-        var maxSpeedX = 0.3f;
-        var frictionAirX = 0.20f;
-        var frictionFloorX = 0.70f;
-        var controlAirX = 85.0f;
-        var controlFloorX = 15.0f;
-
-        var controlX = landed ? controlFloorX : controlAirX;
-        var frictionX = landed ? frictionFloorX : frictionAirX;
-
-        //vel.x += acc.x * controlX;
-        vel.x = Mathf.Clamp(vel.x, -maxSpeedX, maxSpeedX);
-        vel.x *= frictionX;
-
-        var maxSpeedY = 0.2f;
-        var jumpForceY = 95.0f;
-        var gravityForceY = 0.0f;
-        var frictionY = 0.8f;
-
-        //vel.y += acc.y * jumpForceY;
-        vel.y = Mathf.Clamp(vel.y, -maxSpeedY, maxSpeedY);
-        vel.y *= frictionY;
-
-        //Debug.LogFormat("Vel.x: {0}, acc: {0}", vel.x, acc.x);
-
-        //acc.x = 0.0f;
-        //acc.y = 0.0f;
-
-        //if (Mathf.Abs(vel.x) <= 0.01f) vel.x = 0.0f;
-        //if (Mathf.Abs(vel.y) <= 0.01f) vel.y = 0.0f;
-        //if (Mathf.Abs(acc.x) <= 0.01f) acc.x = 0.0f;
-        //if (Mathf.Abs(acc.y) <= 0.01f) acc.y = 0.0f;
-//
-        body.position += vel;
-        body.velocity = Vector2.zero;
-    }
-    */
 }
