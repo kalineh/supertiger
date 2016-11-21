@@ -230,7 +230,6 @@ public class PlayerStreet
                 case BodyState.JumpRising:
                     {
                         forceX += inputX * 0.01f;
-                        //forceY -= (float)jumpFrames * 0.0002f;
                         forceY -= 0.001f;
                         forceY = Mathf.Max(forceY, 0.0f);
 
