@@ -18,6 +18,7 @@ public class PlayerStreet
 
     private int attackFrames;
     private int jumpFrames;
+    private int fallFrames;
     private int attackCooldown;
     private int jumpCooldown;
 
@@ -67,7 +68,8 @@ public class PlayerStreet
             var inputX = Input.GetAxis("Horizontal");
             var inputY = Input.GetAxis("Vertical");
             var moveX = inputX * 0.1f;
-            var moveY = 0.1f;
+            var jumpY = 0.15f;
+            var fallY = 0.1f;
             var attack = Input.GetButton("Fire1");
             var jump = Input.GetButton("Jump");
 
@@ -171,15 +173,15 @@ public class PlayerStreet
                     }
                 case BodyState.Jump:
                     {
-                        var jumpFramesMin = 14;
+                        var jumpFramesMin = 12;
                         var jumpFramesMax = 40;
 
                         var jumpForceInv = (float)jumpFrames / (float)jumpFramesMax;
 
-                        moveY *= 1.0f - jumpForceInv;
+                        jumpY *= 1.0f - jumpForceInv * 1.0f;
 
                         body.position += Vector2.right * moveX;
-                        body.position += Vector2.up * moveY;
+                        body.position += Vector2.up * jumpY;
 
                         jumpFrames++;
 
@@ -187,6 +189,7 @@ public class PlayerStreet
                         {
                             bodyState = BodyState.Fall;
                             jumpCooldown = 10;
+                            fallFrames = 0;
                             break;
                         }
 
@@ -194,6 +197,7 @@ public class PlayerStreet
                         {
                             bodyState = BodyState.Fall;
                             jumpCooldown = 10;
+                            fallFrames = 0;
                             break;
                         }
 
@@ -201,8 +205,11 @@ public class PlayerStreet
                     }
                 case BodyState.Fall:
                     {
+                        fallFrames++;
+
+                        fallY *= (float)fallFrames * 0.05f;
                         body.position += Vector2.right * moveX;
-                        body.position -= Vector2.up * moveY;
+                        body.position -= Vector2.up * fallY;
 
                         if (IsTouchingFloor())
                         {
