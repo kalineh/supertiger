@@ -36,6 +36,8 @@ public class PlayerStreet
     {
         bodyState = state;
         bodyStateFrames = 0;
+
+        animator.Play(state.ToString());
     }
 
     public void OnEnable()
@@ -63,10 +65,13 @@ public class PlayerStreet
     public void MovePosition(Vector2 delta)
     {
         body.position += delta;
+    }
 
-        if (delta.x > +0.01f)
+    public void MoveFacing(float delta)
+    {
+        if (delta > +0.01f)
             animator.transform.rotation = Quaternion.Euler(0.0f, 180.0f, 0.0f);
-        if (delta.x < -0.01f)
+        if (delta < -0.01f)
             animator.transform.rotation = Quaternion.Euler(0.0f, 0.0f, 0.0f);
     }
 
@@ -88,24 +93,25 @@ public class PlayerStreet
             {
                 case BodyState.Idle:
                     {
-                        if (moveX != 0.0f)
-                        {
-                            ChangeState(BodyState.Walk);
-                            animator.Play("Walk");
-                            MovePosition(Vector2.right * moveX);
-                            break;
-                        }
+                        MovePosition(Vector2.right * moveX);
+                        MoveFacing(moveX);
 
                         if (jump)
                         {
                             ChangeState(BodyState.Jump);
-                            animator.Play("Jump");
+                            break;
                         }
 
                         if (attack)
                         {
                             ChangeState(BodyState.PunchCharge);
-                            animator.Play("PunchCharge");
+                            break;
+                        }
+
+                        if (moveX != 0.0f)
+                        {
+                            ChangeState(BodyState.Walk);
+                            break;
                         }
 
                         break;
@@ -115,7 +121,6 @@ public class PlayerStreet
                         if (bodyStateFrames > 4)
                         {
                             ChangeState(BodyState.Idle);
-                            animator.Play("Idle");
                             break;
                         }
                         break;
@@ -123,23 +128,24 @@ public class PlayerStreet
                 case BodyState.Walk:
                     {
                         MovePosition(Vector2.right * moveX);
-
-                        if (moveX == 0.0f)
-                        {
-                            ChangeState(BodyState.Idle);
-                            animator.Play("Idle");
-                        }
+                        MoveFacing(moveX);
 
                         if (jump)
                         {
                             ChangeState(BodyState.Jump);
-                            animator.Play("Jump");
+                            break;
                         }
 
                         if (attack)
                         {
                             ChangeState(BodyState.PunchCharge);
-                            animator.Play("PunchCharge");
+                            break;
+                        }
+
+                        if (moveX == 0.0f)
+                        {
+                            ChangeState(BodyState.Idle);
+                            break;
                         }
 
                         break;
@@ -149,17 +155,17 @@ public class PlayerStreet
                         var attackFramesMin = 4;
                         var attackFramesHeavy = 12;
 
+                        MoveFacing(moveX);
+
                         if (!attack && bodyStateFrames > attackFramesHeavy)
                         {
                             ChangeState(BodyState.PunchHeavy);
-                            animator.Play("PunchHeavy");
                             break;
                         }
 
                         if (!attack && bodyStateFrames > attackFramesMin)
                         {
                             ChangeState(BodyState.PunchLight);
-                            animator.Play("PunchLight");
                             break;
                         }
 
@@ -199,6 +205,8 @@ public class PlayerStreet
                         MovePosition(Vector2.right * moveX);
                         MovePosition(Vector2.up * jumpY);
 
+                        MoveFacing(moveX);
+
                         if (attack && bodyStateFrames > jumpFramesMin)
                         {
                             ChangeState(BodyState.ElbowDrop);
@@ -228,6 +236,8 @@ public class PlayerStreet
 
                         MovePosition(Vector2.right * moveX);
                         MovePosition(Vector2.down * fallY);
+
+                        MoveFacing(moveX);
 
                         if (IsTouchingFloor())
                         {
