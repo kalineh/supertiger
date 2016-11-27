@@ -18,6 +18,8 @@ public class PlayerStreet
 
     private int attackFrames;
     private int jumpFrames;
+    private int attackCooldown;
+    private int jumpCooldown;
 
     public enum BodyState
     {
@@ -26,9 +28,8 @@ public class PlayerStreet
         Walk,
         PunchCharge,
         Punch,
-        JumpPushing,
-        JumpRising,
-        JumpFalling,
+        Jump,
+        Fall,
     }
 
     private BodyState bodyState;
@@ -50,98 +51,10 @@ public class PlayerStreet
         EjectFromFloor();
     }
 
-    public bool IsJumpingAny()
-    {
-        return
-            bodyState == BodyState.JumpPushing ||
-            bodyState == BodyState.JumpRising ||
-            bodyState == BodyState.JumpFalling;
-    }
-
     public bool IsTouchingFloor()
     {
         return Physics2D.IsTouching(selfCollider, FloorTrigger);
     }
-
-    /*
-    public IEnumerator DoUpdateBodyState()
-    {
-        yield break;
-        var frameCycle = new WaitForFixedUpdate();
-
-        while (true)
-        {
-            var vx = vel.x;
-            var vy = vel.y;
-            var vxa = Mathf.Abs(vx);
-            var vya = Mathf.Abs(vy);
-            var vxs = Mathf.Sign(vx);
-            var vys = Mathf.Sign(vy);
-
-            if (IsJumpingAny())
-            {
-                var landed = IsTouchingFloor();
-                if (landed)
-                {
-                    bodyState = BodyState.Idle;
-                    yield return new WaitForSeconds(0.1f);
-                    continue;
-                }
-
-                bodyFacing = vxs;
-                yield return null;
-                continue;
-            }
-
-            if (vxa > 0.10f)
-            {
-                //bodyState = BodyState.Run;
-                bodyFacing = vxs;
-
-                yield return null;
-                continue;
-            }
-
-            if (vxa > 0.05f)
-            {
-                //bodyState = BodyState.Step;
-                bodyFacing = vxs;
-
-                yield return null;
-                continue;
-            }
-
-            bodyState = BodyState.Idle;
-            bodyFacing = vxs;
-        }
-    }
-    */
-
-        /*
-    public IEnumerator DoUpdateBodyStateVisual()
-    {
-        var body = transform.Find("Visual/Body").GetComponent<Renderer>().material;
-        var feet = transform.Find("Visual/Feet").GetComponent<Renderer>().material;
-
-        while (true)
-        {
-            switch (bodyState)
-            {
-                case BodyState.Idle: body.color = Color.white; break;
-                //case BodyState.Step: body.color = Color.Lerp(Color.white, Color.green, 0.25f); break;
-                //case BodyState.Run: body.color = Color.Lerp(Color.white, Color.green, 1.0f); break;
-                //case BodyState.Reverse: body.color = Color.Lerp(Color.white, Color.green, 0.5f); break;
-                //case BodyState.Jump: body.color = Color.Lerp(Color.white, Color.red, 0.5f); break;
-            }
-
-            var landed = Physics2D.IsTouching(selfCollider, FloorCollider);
-
-            feet.color = landed ? Color.blue : Color.white;
-
-            yield return null;
-        }
-    }
-    */
 
     public void FixedUpdate()
     {
@@ -153,140 +66,152 @@ public class PlayerStreet
         {
             var inputX = Input.GetAxis("Horizontal");
             var inputY = Input.GetAxis("Vertical");
+            var moveX = inputX * 0.1f;
+            var moveY = 0.1f;
+            var attack = Input.GetButton("Fire1");
+            var jump = Input.GetButton("Jump");
 
-            var inputUp = inputY > 0.0f;
-            var inputDown = inputY < 0.0f;
+            if (attackCooldown > 0)
+            {
+                attack = false;
+                attackCooldown--;
+            }
 
-            if (Input.GetButton("Fire1"))
-                attackFrames++;
-            else
-                attackFrames = 0;
-
-            if (Input.GetButton("Jump"))
-                jumpFrames++;
-            else
-                jumpFrames = 0;
-
-            var landed = IsTouchingFloor();
-            var dt = Time.deltaTime;
+            if (jumpCooldown > 0)
+            {
+                jump = false;
+                jumpCooldown--;
+            }
 
             switch (bodyState)
             {
                 case BodyState.Idle:
                     {
-                        if (jumpFrames == 1)
+                        if (moveX != 0.0f)
                         {
-                            bodyState = BodyState.JumpPushing;
-                            forceY = 0.20f;
+                            bodyState = BodyState.Walk;
+                            body.position += Vector2.right * moveX;
                             break;
                         }
 
-                        if (attackFrames == 1)
+                        if (jump)
                         {
-                            bodyState = BodyState.PunchCharge;
-                            forceX = 0.0f;
-                            forceY = 0.0f;
+                            bodyState = BodyState.Jump;
                             jumpFrames = 0;
-                            break;
                         }
 
-                        forceX += inputX * 0.02f;
+                        if (attack)
+                        {
+                            bodyState = BodyState.Punch;
+                            attackFrames = 0;
+                        }
+
                         break;
                     }
                 case BodyState.Land:
                     {
-                        forceX *= 0.2f;
-                        forceY = 0.0f;
                         bodyState = BodyState.Idle;
                         break;
                     }
-
                 case BodyState.Walk:
                     {
-                        bodyState = BodyState.Idle;
+                        body.position += Vector2.right * moveX;
+
+                        if (moveX == 0.0f)
+                        {
+                            bodyState = BodyState.Idle;
+                        }
+
+                        if (jump)
+                        {
+                            bodyState = BodyState.Jump;
+                            jumpFrames = 0;
+                        }
+
+                        if (attack)
+                        {
+                            bodyState = BodyState.Punch;
+                            attackFrames = 0;
+                        }
+
                         break;
                     }
                 case BodyState.PunchCharge:
                     {
-                        bodyState = BodyState.Idle;
-                        break;
-                    }
-                case BodyState.JumpPushing:
-                    {
-                        forceX += inputX * 0.01f;
-                        forceY += 0.0003f;
-                        forceY -= (float)jumpFrames * 0.00002f;
-                        forceY = Mathf.Max(forceY, 0.0f);
-
-                        if (jumpFrames == 0 || forceY <= 0.0f)
+                        if (!attack)
                         {
-                            bodyState = BodyState.JumpRising;
-                            forceY = 0.0f;
+                            bodyState = BodyState.Idle;
+                            attackCooldown = 12;
                             break;
                         }
 
                         break;
                     }
-                case BodyState.JumpRising:
+                case BodyState.Punch:
                     {
-                        forceX += inputX * 0.01f;
-                        forceY -= 0.001f;
-                        forceY = Mathf.Max(forceY, 0.0f);
+                        var attackFramesMin = 4;
+                        var attackFramesCharge = 12;
 
-                        if (forceY <= 0.0f)
+                        attackFrames++;
+
+                        if (!attack && attackFrames > attackFramesMin)
                         {
-                            bodyState = BodyState.JumpFalling;
+                            bodyState = BodyState.Idle;
+                            attackCooldown = 4;
+                            break;
+                        }
+
+                        if (attackFrames > attackFramesCharge)
+                        {
+                            bodyState = BodyState.PunchCharge;
                             break;
                         }
 
                         break;
                     }
-                case BodyState.JumpFalling:
+                case BodyState.Jump:
                     {
-                        forceX += inputX * 0.01f;
-                        forceY -= 0.008f;
+                        var jumpFramesMin = 14;
+                        var jumpFramesMax = 40;
 
-                        if (landed)
+                        var jumpForceInv = (float)jumpFrames / (float)jumpFramesMax;
+
+                        moveY *= 1.0f - jumpForceInv;
+
+                        body.position += Vector2.right * moveX;
+                        body.position += Vector2.up * moveY;
+
+                        jumpFrames++;
+
+                        if (!jump && jumpFrames > jumpFramesMin)
+                        {
+                            bodyState = BodyState.Fall;
+                            jumpCooldown = 10;
+                            break;
+                        }
+
+                        if (jumpFrames > jumpFramesMax)
+                        {
+                            bodyState = BodyState.Fall;
+                            jumpCooldown = 10;
+                            break;
+                        }
+
+                        break;
+                    }
+                case BodyState.Fall:
+                    {
+                        body.position += Vector2.right * moveX;
+                        body.position -= Vector2.up * moveY;
+
+                        if (IsTouchingFloor())
                         {
                             bodyState = BodyState.Land;
                             break;
                         }
-
                         break;
                     }
             }
-
-            vel += new Vector2(forceX, forceY);
-
-            body.position += vel;
-
-            landed = IsTouchingFloor();
-
-            forceX = Mathf.Clamp(forceX, -0.03f, 0.03f);
-            forceY = Mathf.Clamp(forceY, -0.25f, 0.25f);
-            vel.x = Mathf.Clamp(vel.x, -0.03f, 0.03f);
-            vel.y = Mathf.Clamp(vel.y, -0.05f, 0.05f);
-
-            if (landed)
-                vel.x *= 0.8f;
-            else
-                vel.x *= 0.98f;
-
-            vel.y *= 0.8f;
-
-            if (landed)
-                forceX *= 0.40f;
-            else
-                forceX *= 0.80f;
-
-            forceY *= 0.92f;
-
-            if (Mathf.Abs(forceX) < 0.001f) forceX = 0.0f;
-            if (Mathf.Abs(forceY) < 0.001f) forceY = 0.0f;
-            if (Mathf.Abs(vel.x) < 0.001f) vel.x = 0.0f;
-            if (Mathf.Abs(vel.y) < 0.001f) vel.y = 0.0f;
-
-            EjectFromFloor();
 
             yield return new WaitForFixedUpdate();
         }
