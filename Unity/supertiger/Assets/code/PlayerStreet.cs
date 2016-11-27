@@ -325,7 +325,12 @@ public class PlayerStreet
         for (int i = 0; i < collisions; ++i)
         {
             var c = results[i];
-            Debug.Log(c.collider.name);
+            var e = c.collider.gameObject.GetComponentInParent<EnemyStreet>();
+
+            if (e != null)
+            {
+                Destroy(e.gameObject);
+            }
         }
 
         yield break;
