@@ -28,6 +28,13 @@ public class PlayerStreet
     private BodyState bodyState;
     private int bodyStateFrames;
 
+    public BoxCollider2D colliderHitIdle;
+    public BoxCollider2D colliderHitElbowDrop;
+
+    public BoxCollider2D colliderAttackPunchLight;
+    public BoxCollider2D colliderAttackPunchHeavy;
+    public BoxCollider2D colliderAttackElbowDrop;
+
     public void Update()
     {
     }
@@ -38,6 +45,19 @@ public class PlayerStreet
         bodyStateFrames = 0;
 
         animator.Play(state.ToString());
+
+        switch (state)
+        {
+            default:
+                colliderHitIdle.enabled = true;
+                colliderHitElbowDrop.enabled = false;
+                break;
+
+            case BodyState.ElbowDrop:
+                colliderHitIdle.enabled = false;
+                colliderHitElbowDrop.enabled = true;
+                break;
+        }
     }
 
     public void OnEnable()
@@ -173,6 +193,9 @@ public class PlayerStreet
                     }
                 case BodyState.PunchLight:
                     {
+                        if (bodyStateFrames == 1)
+                            StartCoroutine(DoPunchLight());
+
                         if (bodyStateFrames > 4)
                         {
                             ChangeState(BodyState.Idle);
@@ -184,6 +207,9 @@ public class PlayerStreet
                     }
                 case BodyState.PunchHeavy:
                     {
+                        if (bodyStateFrames == 1)
+                            StartCoroutine(DoPunchHeavy());
+
                         if (bodyStateFrames > 8)
                         {
                             ChangeState(BodyState.Idle);
@@ -249,6 +275,9 @@ public class PlayerStreet
                     }
                 case BodyState.ElbowDrop:
                     {
+                        if (bodyStateFrames == 1)
+                            StartCoroutine(DoElbowDrop());
+
                         fallY *= (float)bodyStateFrames * 0.05f;
 
                         MovePosition(Vector2.right * moveX * 0.2f);
@@ -278,5 +307,21 @@ public class PlayerStreet
             if (Physics2D.IsTouching(selfCollider, FloorCollider))
                 body.position += Vector2.up * 0.001f;
         }
+    }
+
+    public IEnumerator DoPunchLight()
+    {
+        
+        yield break;
+    }
+
+    public IEnumerator DoPunchHeavy()
+    {
+        yield break;
+    }
+
+    public IEnumerator DoElbowDrop()
+    {
+        yield break;
     }
 }
