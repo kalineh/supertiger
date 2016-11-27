@@ -9,13 +9,7 @@ public class PlayerStreet
     public Collider2D FloorCollider;
 
     private Collider2D selfCollider;
-
-    private Vector2 vel;
     private Rigidbody2D body;
-
-    private float forceX;
-    private float forceY;
-
     private Animator animator;
 
     public enum BodyState
@@ -65,6 +59,16 @@ public class PlayerStreet
     {
     }
 
+    public void MovePosition(Vector2 delta)
+    {
+        body.position += delta;
+
+        if (delta.x > +0.01f)
+            animator.transform.rotation = Quaternion.Euler(0.0f, 180.0f, 0.0f);
+        if (delta.x < -0.01f)
+            animator.transform.rotation = Quaternion.Euler(0.0f, 0.0f, 0.0f);
+    }
+
     public IEnumerator DoUpdateInput()
     {
         while (true)
@@ -87,7 +91,7 @@ public class PlayerStreet
                         {
                             ChangeState(BodyState.Walk);
                             animator.Play("Walk");
-                            body.position += Vector2.right * moveX;
+                            MovePosition(Vector2.right * moveX);
                             break;
                         }
 
@@ -117,7 +121,7 @@ public class PlayerStreet
                     }
                 case BodyState.Walk:
                     {
-                        body.position += Vector2.right * moveX;
+                        MovePosition(Vector2.right * moveX);
 
                         if (moveX == 0.0f)
                         {
@@ -191,8 +195,8 @@ public class PlayerStreet
 
                         jumpY *= 1.0f - jumpForceInv * 1.0f;
 
-                        body.position += Vector2.right * moveX;
-                        body.position += Vector2.up * jumpY;
+                        MovePosition(Vector2.right * moveX);
+                        MovePosition(Vector2.up * jumpY);
 
                         if (!jump && bodyStateFrames > jumpFramesMin)
                         {
@@ -213,8 +217,9 @@ public class PlayerStreet
                 case BodyState.Fall:
                     {
                         fallY *= (float)bodyStateFrames * 0.05f;
-                        body.position += Vector2.right * moveX;
-                        body.position -= Vector2.up * fallY;
+
+                        MovePosition(Vector2.right * moveX);
+                        MovePosition(Vector2.down * fallY);
 
                         if (IsTouchingFloor())
                         {
