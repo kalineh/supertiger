@@ -20,6 +20,7 @@ public class PlayerStreet
         PunchCharge,
         PunchLight,
         PunchHeavy,
+        ElbowDrop,
         Jump,
         Fall,
     }
@@ -198,6 +199,13 @@ public class PlayerStreet
                         MovePosition(Vector2.right * moveX);
                         MovePosition(Vector2.up * jumpY);
 
+                        if (attack && bodyStateFrames > jumpFramesMin)
+                        {
+                            ChangeState(BodyState.ElbowDrop);
+                            animator.Play("ElbowDrop");
+                            break;
+                        }
+
                         if (!jump && bodyStateFrames > jumpFramesMin)
                         {
                             ChangeState(BodyState.Fall);
@@ -219,6 +227,21 @@ public class PlayerStreet
                         fallY *= (float)bodyStateFrames * 0.05f;
 
                         MovePosition(Vector2.right * moveX);
+                        MovePosition(Vector2.down * fallY);
+
+                        if (IsTouchingFloor())
+                        {
+                            ChangeState(BodyState.Land);
+                            animator.Play("Land");
+                            break;
+                        }
+                        break;
+                    }
+                case BodyState.ElbowDrop:
+                    {
+                        fallY *= (float)bodyStateFrames * 0.05f;
+
+                        MovePosition(Vector2.right * moveX * 0.2f);
                         MovePosition(Vector2.down * fallY);
 
                         if (IsTouchingFloor())
