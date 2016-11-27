@@ -16,11 +16,7 @@ public class PlayerStreet
     private float forceX;
     private float forceY;
 
-    private int attackFrames;
-    private int jumpFrames;
-    private int fallFrames;
-    private int attackCooldown;
-    private int jumpCooldown;
+    private Animator animator;
 
     public enum BodyState
     {
@@ -28,22 +24,30 @@ public class PlayerStreet
         Land,
         Walk,
         PunchCharge,
-        Punch,
+        PunchLight,
+        PunchHeavy,
         Jump,
         Fall,
     }
 
     private BodyState bodyState;
-    private float bodyFacing;
+    private int bodyStateFrames;
 
     public void Update()
     {
+    }
+
+    public void ChangeState(BodyState state)
+    {
+        bodyState = state;
+        bodyStateFrames = 0;
     }
 
     public void OnEnable()
     {
         body = GetComponent<Rigidbody2D>();
         selfCollider = GetComponent<Collider2D>();
+        animator = GetComponentInChildren<Animator>();
 
         StartCoroutine(DoUpdateInput());
         //StartCoroutine(DoUpdateBodyState());
@@ -73,17 +77,7 @@ public class PlayerStreet
             var attack = Input.GetButton("Fire1");
             var jump = Input.GetButton("Jump");
 
-            if (attackCooldown > 0)
-            {
-                attack = false;
-                attackCooldown--;
-            }
-
-            if (jumpCooldown > 0)
-            {
-                jump = false;
-                jumpCooldown--;
-            }
+            bodyStateFrames++;
 
             switch (bodyState)
             {
@@ -91,28 +85,34 @@ public class PlayerStreet
                     {
                         if (moveX != 0.0f)
                         {
-                            bodyState = BodyState.Walk;
+                            ChangeState(BodyState.Walk);
+                            animator.Play("Walk");
                             body.position += Vector2.right * moveX;
                             break;
                         }
 
                         if (jump)
                         {
-                            bodyState = BodyState.Jump;
-                            jumpFrames = 0;
+                            ChangeState(BodyState.Jump);
+                            animator.Play("Jump");
                         }
 
                         if (attack)
                         {
-                            bodyState = BodyState.Punch;
-                            attackFrames = 0;
+                            ChangeState(BodyState.PunchCharge);
+                            animator.Play("PunchCharge");
                         }
 
                         break;
                     }
                 case BodyState.Land:
                     {
-                        bodyState = BodyState.Idle;
+                        if (bodyStateFrames > 4)
+                        {
+                            ChangeState(BodyState.Idle);
+                            animator.Play("Idle");
+                            break;
+                        }
                         break;
                     }
                 case BodyState.Walk:
@@ -121,51 +121,62 @@ public class PlayerStreet
 
                         if (moveX == 0.0f)
                         {
-                            bodyState = BodyState.Idle;
+                            ChangeState(BodyState.Idle);
+                            animator.Play("Idle");
                         }
 
                         if (jump)
                         {
-                            bodyState = BodyState.Jump;
-                            jumpFrames = 0;
+                            ChangeState(BodyState.Jump);
+                            animator.Play("Jump");
                         }
 
                         if (attack)
                         {
-                            bodyState = BodyState.Punch;
-                            attackFrames = 0;
+                            ChangeState(BodyState.PunchCharge);
+                            animator.Play("PunchCharge");
                         }
 
                         break;
                     }
                 case BodyState.PunchCharge:
                     {
-                        if (!attack)
+                        var attackFramesMin = 4;
+                        var attackFramesHeavy = 12;
+
+                        if (!attack && bodyStateFrames > attackFramesHeavy)
                         {
-                            bodyState = BodyState.Idle;
-                            attackCooldown = 12;
+                            ChangeState(BodyState.PunchHeavy);
+                            animator.Play("PunchHeavy");
+                            break;
+                        }
+
+                        if (!attack && bodyStateFrames > attackFramesMin)
+                        {
+                            ChangeState(BodyState.PunchLight);
+                            animator.Play("PunchLight");
                             break;
                         }
 
                         break;
                     }
-                case BodyState.Punch:
+                case BodyState.PunchLight:
                     {
-                        var attackFramesMin = 4;
-                        var attackFramesCharge = 12;
-
-                        attackFrames++;
-
-                        if (!attack && attackFrames > attackFramesMin)
+                        if (bodyStateFrames > 4)
                         {
-                            bodyState = BodyState.Idle;
-                            attackCooldown = 4;
+                            ChangeState(BodyState.Idle);
+                            animator.Play("Idle");
                             break;
                         }
 
-                        if (attackFrames > attackFramesCharge)
+                        break;
+                    }
+                case BodyState.PunchHeavy:
+                    {
+                        if (bodyStateFrames > 8)
                         {
-                            bodyState = BodyState.PunchCharge;
+                            ChangeState(BodyState.Idle);
+                            animator.Play("Idle");
                             break;
                         }
 
@@ -176,28 +187,24 @@ public class PlayerStreet
                         var jumpFramesMin = 12;
                         var jumpFramesMax = 40;
 
-                        var jumpForceInv = (float)jumpFrames / (float)jumpFramesMax;
+                        var jumpForceInv = (float)bodyStateFrames / (float)jumpFramesMax;
 
                         jumpY *= 1.0f - jumpForceInv * 1.0f;
 
                         body.position += Vector2.right * moveX;
                         body.position += Vector2.up * jumpY;
 
-                        jumpFrames++;
-
-                        if (!jump && jumpFrames > jumpFramesMin)
+                        if (!jump && bodyStateFrames > jumpFramesMin)
                         {
-                            bodyState = BodyState.Fall;
-                            jumpCooldown = 10;
-                            fallFrames = 0;
+                            ChangeState(BodyState.Fall);
+                            animator.Play("Fall");
                             break;
                         }
 
-                        if (jumpFrames > jumpFramesMax)
+                        if (bodyStateFrames > jumpFramesMax)
                         {
-                            bodyState = BodyState.Fall;
-                            jumpCooldown = 10;
-                            fallFrames = 0;
+                            ChangeState(BodyState.Fall);
+                            animator.Play("Fall");
                             break;
                         }
 
@@ -205,15 +212,14 @@ public class PlayerStreet
                     }
                 case BodyState.Fall:
                     {
-                        fallFrames++;
-
-                        fallY *= (float)fallFrames * 0.05f;
+                        fallY *= (float)bodyStateFrames * 0.05f;
                         body.position += Vector2.right * moveX;
                         body.position -= Vector2.up * fallY;
 
                         if (IsTouchingFloor())
                         {
-                            bodyState = BodyState.Land;
+                            ChangeState(BodyState.Land);
+                            animator.Play("Land");
                             break;
                         }
                         break;
