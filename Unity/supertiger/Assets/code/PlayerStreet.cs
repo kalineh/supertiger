@@ -27,6 +27,7 @@ public class PlayerStreet
 
     private BodyState bodyState;
     private int bodyStateFrames;
+    private float facing;
 
     public BoxCollider2D colliderHitIdle;
     public BoxCollider2D colliderHitElbowDrop;
@@ -90,9 +91,16 @@ public class PlayerStreet
     public void MoveFacing(float delta)
     {
         if (delta > +0.01f)
+        {
+            facing = Mathf.Sign(delta);
             animator.transform.rotation = Quaternion.Euler(0.0f, 180.0f, 0.0f);
+        }
+
         if (delta < -0.01f)
+        {
+            facing = Mathf.Sign(delta);
             animator.transform.rotation = Quaternion.Euler(0.0f, 0.0f, 0.0f);
+        }
     }
 
     public IEnumerator DoUpdateInput()
@@ -311,7 +319,15 @@ public class PlayerStreet
 
     public IEnumerator DoPunchLight()
     {
-        
+        var results = new RaycastHit2D[32];
+        var collisions = colliderAttackPunchLight.Cast(Vector2.right * facing, results, 0.0f, true);
+
+        for (int i = 0; i < collisions; ++i)
+        {
+            var c = results[i];
+            Debug.Log(c.collider.name);
+        }
+
         yield break;
     }
 
