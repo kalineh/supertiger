@@ -27,6 +27,8 @@ public class PlayerStreet
 
     private BodyState bodyState;
     private int bodyStateFrames;
+
+    private Transform facingTransform;
     private float facing;
 
     public BoxCollider2D colliderHitIdle;
@@ -66,6 +68,7 @@ public class PlayerStreet
         body = GetComponent<Rigidbody2D>();
         selfCollider = GetComponent<Collider2D>();
         animator = GetComponentInChildren<Animator>();
+        facingTransform = transform.Find("Facing");
 
         StartCoroutine(DoUpdateInput());
         //StartCoroutine(DoUpdateBodyState());
@@ -90,16 +93,16 @@ public class PlayerStreet
 
     public void MoveFacing(float delta)
     {
-        if (delta > +0.01f)
-        {
-            facing = Mathf.Sign(delta);
-            animator.transform.rotation = Quaternion.Euler(0.0f, 180.0f, 0.0f);
-        }
-
         if (delta < -0.01f)
         {
             facing = Mathf.Sign(delta);
-            animator.transform.rotation = Quaternion.Euler(0.0f, 0.0f, 0.0f);
+            facingTransform.rotation = Quaternion.Euler(0.0f, 180.0f, 0.0f);
+        }
+
+        if (delta > +0.01f)
+        {
+            facing = Mathf.Sign(delta);
+            facingTransform.rotation = Quaternion.Euler(0.0f, 0.0f, 0.0f);
         }
     }
 
