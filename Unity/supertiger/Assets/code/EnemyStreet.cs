@@ -107,6 +107,24 @@ public class EnemyStreet
         return null;
     }
 
+    public EnemyStreet FindNearbyEnemyInDirection(float dir, float range)
+    {
+        var playerMask = LayerMask.GetMask("Enemy");
+        var hits = Physics2D.BoxCastAll(transform.position, Vector2.one * 0.1f, 0.0f, Vector2.right * dir, range, playerMask);
+
+        foreach (var hit in hits)
+        {
+            var e = hit.collider.gameObject.GetComponent<EnemyStreet>();
+            if (e == gameObject)
+                continue;
+
+            if (e != null)
+                return e;
+        }
+
+        return null;
+    }
+
     public IEnumerator DoUpdateAI()
     {
         var framesWalk = 0;
@@ -115,9 +133,6 @@ public class EnemyStreet
         var framesDelay = 0;
         var inputX = 0.0f;
         var attack = false;
-
-        // if player near, idle walk
-        // if no player, wait
 
         while (true)
         {
@@ -130,14 +145,16 @@ public class EnemyStreet
 
             if (framesWalk <= 0 && framesAttack <= 0 && framesDelay <= 0)
             {
-                var rangeAttack = 2.0f;
+                var rangeRetreat = 2.0f;
+                var rangeAttack = 4.0f;
                 var rangeWalk = 8.0f;
 
                 var distance = Vector3.Distance(player.transform.position, transform.position);
+                var canRetreat = distance < rangeRetreat;
                 var canAttack = distance < rangeAttack;
                 var canWalk = distance < rangeWalk;
 
-                if (canAttack && Random.Range(0.0f, 1.0f) < 0.1f)
+                if (canAttack && !canRetreat && Random.Range(0.0f, 1.0f) < 0.1f)
                 {
                     framesAttack = 120;
                     attackCycles = 1;
@@ -168,11 +185,32 @@ public class EnemyStreet
             {
                 framesWalk--;
                 inputX = facing;
+
+                if (framesWalk <= 0)
+                    framesDelay = Random.Range(200, 600);
+
+                var rangeStop = 1.25f;
+                var distance = Vector3.Distance(player.transform.position, transform.position);
+                if (distance <= rangeStop)
+                {
+                    framesWalk = 0;
+                    framesDelay = Random.Range(20, 80);
+                }
+
+                var nearEnemy = FindNearbyEnemyInDirection(facing, 4.0f);
+                if (nearEnemy != null)
+                {
+                    //framesWalk = 0;
+                    //framesDelay = Random.Range(100, 200);
+                }
             }
             else if (framesAttack > 0)
             {
                 framesAttack--;
                 attack = true;
+
+                if (framesAttack <= 0 && attackCycles <= 0)
+                    framesDelay = Random.Range(100, 200);
             }
 
             var moveX = inputX * 0.05f;
