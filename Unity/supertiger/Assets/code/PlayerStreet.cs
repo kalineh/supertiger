@@ -331,9 +331,7 @@ public class PlayerStreet
             var e = c.collider.gameObject.GetComponentInParent<EnemyStreet>();
 
             if (e != null)
-            {
-                Destroy(e.gameObject);
-            }
+                e.OnGetHit(gameObject, 1);
         }
 
         yield break;
@@ -341,11 +339,34 @@ public class PlayerStreet
 
     public IEnumerator DoPunchHeavy()
     {
+        var results = new RaycastHit2D[32];
+        var collisions = colliderAttackPunchLight.Cast(Vector2.right * facing, results, 0.0f, true);
+
+        for (int i = 0; i < collisions; ++i)
+        {
+            var c = results[i];
+            var e = c.collider.gameObject.GetComponentInParent<EnemyStreet>();
+
+            if (e != null)
+                e.OnGetHit(gameObject, 1);
+        }
+
         yield break;
     }
 
     public IEnumerator DoElbowDrop()
     {
+        var results = new RaycastHit2D[32];
+        var collisions = colliderAttackPunchLight.Cast(Vector2.right * facing, results, 0.0f, true);
+
+        for (int i = 0; i < collisions; ++i)
+        {
+            var c = results[i];
+            var e = c.collider.gameObject.GetComponentInParent<EnemyStreet>();
+
+            if (e != null)
+                e.OnGetHit(gameObject, 1);
+        }
         yield break;
     }
 }
