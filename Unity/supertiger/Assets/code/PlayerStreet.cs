@@ -12,6 +12,8 @@ public class PlayerStreet
     private Rigidbody2D body;
     private Animator animator;
 
+    private int health;
+
     public enum BodyState
     {
         Idle,
@@ -23,6 +25,8 @@ public class PlayerStreet
         ElbowDrop,
         Jump,
         Fall,
+        Damage,
+        Dead,
     }
 
     private BodyState bodyState;
@@ -69,6 +73,8 @@ public class PlayerStreet
         selfCollider = GetComponent<Collider2D>();
         animator = GetComponentInChildren<Animator>();
         facingTransform = transform.Find("Facing");
+
+        health = 5;
 
         StartCoroutine(DoUpdateInput());
         //StartCoroutine(DoUpdateBodyState());
@@ -302,6 +308,31 @@ public class PlayerStreet
                         }
                         break;
                     }
+                case BodyState.Damage:
+                    {
+                        if (bodyStateFrames > 12)
+                        {
+                            ChangeState(BodyState.Idle);
+                            break;
+                        }
+
+                        break;
+                    }
+                case BodyState.Dead:
+                    {
+                        var fall = Vector2.up * 0.05f + Vector2.down * 0.001f * (float)bodyStateFrames;
+
+                        if (bodyStateFrames < 8 || !IsTouchingFloor())
+                            MovePosition(fall);
+
+                        if (bodyStateFrames > 360)
+                        {
+                            Destroy(gameObject);
+                            break;
+                        }
+
+                        break;
+                    }
             }
 
             yield return new WaitForFixedUpdate();
@@ -368,5 +399,21 @@ public class PlayerStreet
                 e.OnGetHit(gameObject, 1);
         }
         yield break;
+    }
+
+    public void OnGetHit(GameObject src, int damage)
+    {
+        if (bodyState == BodyState.Dead)
+            return;
+
+        health -= damage;
+
+        if (health <= 0)
+        {
+            ChangeState(BodyState.Dead);
+            return;
+        }
+
+        ChangeState(BodyState.Damage);
     }
 }

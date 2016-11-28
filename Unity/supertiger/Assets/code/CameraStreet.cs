@@ -22,6 +22,9 @@ public class CameraStreet
 
     public void FixedUpdate()
     {
+        if (!FollowTarget)
+            return;
+
         var worldLeft = _camera.ScreenToWorldPoint(new Vector3(_camera.pixelRect.xMin, 0.0f, 0.0f));
         var worldRight = _camera.ScreenToWorldPoint(new Vector3(_camera.pixelRect.xMax, 0.0f, 0.0f));
 

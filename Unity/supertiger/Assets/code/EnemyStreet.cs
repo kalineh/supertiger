@@ -24,6 +24,7 @@ public class EnemyStreet
     private BodyState bodyState;
     private int bodyStateFrames;
     private float facing;
+    private Transform facingTransform;
     private int health;
 
     public BoxCollider2D colliderHitIdle;
@@ -53,6 +54,7 @@ public class EnemyStreet
         body = GetComponent<Rigidbody2D>();
         selfCollider = GetComponent<Collider2D>();
         animator = GetComponentInChildren<Animator>();
+        facingTransform = transform.Find("Facing");
 
         health = 3;
 
@@ -77,16 +79,16 @@ public class EnemyStreet
 
     public void MoveFacing(float delta)
     {
-        if (delta > +0.01f)
+        if (delta < -0.001f)
         {
             facing = Mathf.Sign(delta);
-            animator.transform.rotation = Quaternion.Euler(0.0f, 180.0f, 0.0f);
+            facingTransform.rotation = Quaternion.Euler(0.0f, 180.0f, 0.0f);
         }
 
-        if (delta < -0.01f)
+        if (delta > +0.001f)
         {
             facing = Mathf.Sign(delta);
-            animator.transform.rotation = Quaternion.Euler(0.0f, 0.0f, 0.0f);
+            facingTransform.rotation = Quaternion.Euler(0.0f, 0.0f, 0.0f);
         }
     }
 
@@ -104,10 +106,10 @@ public class EnemyStreet
                 inputX = Mathf.Sign(Random.Range(-1.0f, 1.0f));
             }
 
-            var playerDetect = Physics.BoxCast(transform.position, Vector3.one, Vector2.right * inputX, Quaternion.identity, 0.0f, LayerMask.GetMask("PlayerAttackIn"));
+            var playerDetect = Physics2D.BoxCast(transform.position, Vector2.one * 2.0f, 0.0f, Vector2.zero, 0.0f, LayerMask.GetMask("Player"));
             if (playerDetect)
             {
-                if (Random.Range(0.0f, 1.0f) < 0.02f)
+                if (Random.Range(0.0f, 1.0f) < 0.12f)
                     attack = true;
                 else
                     attack = false;
@@ -162,7 +164,7 @@ public class EnemyStreet
                         if (bodyStateFrames == 1)
                             StartCoroutine(DoPunch());
 
-                        if (bodyStateFrames > 8)
+                        if (bodyStateFrames > 120)
                         {
                             ChangeState(BodyState.Idle);
                             break;
@@ -221,7 +223,10 @@ public class EnemyStreet
         for (int i = 0; i < collisions; ++i)
         {
             var c = results[i];
-            Debug.Log("HIT PLAYER");
+            var p = c.collider.gameObject.GetComponentInParent<PlayerStreet>();
+
+            if (p != null)
+                p.OnGetHit(gameObject, 1);
         }
 
         yield break;
