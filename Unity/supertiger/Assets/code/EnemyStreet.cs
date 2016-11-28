@@ -92,30 +92,90 @@ public class EnemyStreet
         }
     }
 
+    public PlayerStreet FindNearbyPlayer(float range)
+    {
+        var playerMask = LayerMask.GetMask("Player");
+        var hits = Physics2D.BoxCastAll(transform.position, Vector2.one * range, 0.0f, Vector2.zero, 0.0f, playerMask);
+
+        foreach (var hit in hits)
+        {
+            var p = hit.collider.gameObject.GetComponent<PlayerStreet>();
+            if (p != null)
+                return p;
+        }
+
+        return null;
+    }
+
     public IEnumerator DoUpdateAI()
     {
         var framesWalk = 0;
+        var framesAttack = 0;
+        var attackCycles = 0;
+        var framesDelay = 0;
         var inputX = 0.0f;
         var attack = false;
 
+        // if player near, idle walk
+        // if no player, wait
+
         while (true)
         {
-            if (Random.Range(0.0f, 1.0f) < 0.01f)
+            var player = FindNearbyPlayer(16.0f);
+            if (!player)
             {
-                framesWalk = Random.Range(120, 200);
-                inputX = Mathf.Sign(Random.Range(-1.0f, 1.0f));
+                yield return new WaitForSeconds(Random.Range(2.0f, 4.0f));
+                continue;
             }
 
-            var playerDetect = Physics2D.BoxCast(transform.position, Vector2.one * 2.0f, 0.0f, Vector2.zero, 0.0f, LayerMask.GetMask("Player"));
-            if (playerDetect)
+            if (framesWalk <= 0 && framesAttack <= 0 && framesDelay <= 0)
             {
-                if (Random.Range(0.0f, 1.0f) < 0.12f)
-                    attack = true;
-                else
-                    attack = false;
+                var rangeAttack = 2.0f;
+                var rangeWalk = 8.0f;
+
+                var distance = Vector3.Distance(player.transform.position, transform.position);
+                var canAttack = distance < rangeAttack;
+                var canWalk = distance < rangeWalk;
+
+                if (canAttack && Random.Range(0.0f, 1.0f) < 0.1f)
+                {
+                    framesAttack = 120;
+                    attackCycles = 1;
+
+                    if (Random.Range(0.0f, 1.0f) < 0.1f)
+                        attackCycles = 3;
+                    else if (Random.Range(0.0f, 1.0f) < 0.2f)
+                        attackCycles = 2;
+                }
+                else if (canWalk && Random.Range(0.0f, 1.0f) < 0.2f)
+                {
+                    framesWalk = Random.Range(30, 180);
+                    MoveFacing(Mathf.Sign(player.transform.position.x - transform.position.x));
+                }
             }
 
-            var moveX = inputX * 0.01f;
+            if (framesAttack <= 0 && attackCycles > 0)
+            {
+                attackCycles -= 1;
+                framesAttack = 120;
+            }
+
+            if (framesDelay > 0)
+            {
+                framesDelay--;
+            }
+            else if (framesWalk > 0)
+            {
+                framesWalk--;
+                inputX = facing;
+            }
+            else if (framesAttack > 0)
+            {
+                framesAttack--;
+                attack = true;
+            }
+
+            var moveX = inputX * 0.05f;
 
             bodyStateFrames++;
 
